@@ -1,0 +1,60 @@
+﻿ - Format: Comma Separated Value (CSV)
+ - Files:
+
+   - **posts**.csv
+       - Id
+       - PostTypeId
+          - 1: Question
+          - 2: Answer
+       - ParentID (only present if PostTypeId is 2)
+       - AcceptedAnswerId (only present if PostTypeId is 1)
+       - CreationDate
+       - Score
+       - ViewCount
+       - OwnerUserId
+	   - OwnerDisplayName (only present if owner is deleted from the system)
+       - LastEditorUserId
+       - LastEditDate: formated as "2009-03-05T22:28:34.823"
+       - LastActivityDate: formated as "2009-03-11T12:51:01.480"
+       - Title 
+       - Tags: a single string with each tag separated by comma
+       - AnswerCount
+       - CommentCount
+       - FavoriteCount
+   - **users**.csv
+     - Id
+	 - AccountId: an alternative id, not used in other file
+     - Reputation
+     - CreationDate
+     - DisplayName
+     - LastAccessDate
+     - Location
+     - Age
+     - Views
+     - UpVotes
+     - DownVotes
+   - **votes**.csv
+     - Id
+     - PostId
+     - VoteTypeId
+        - ` 1`: AcceptedByOriginator
+        - ` 2`: UpMod
+        - ` 3`: DownMod
+        - ` 4`: Offensive
+        - ` 5`: Favorite - if VoteTypeId = 5 UserId will be populated
+        - ` 6`: Close
+        - ` 7`: Reopen
+        - ` 8`: BountyStart
+        - ` 9`: BountyClose
+        - `10`: Deletion
+        - `11`: Undeletion
+        - `12`: Spam
+        - `13`: InformModerator
+     - CreationDate
+     - UserId (only for VoteTypeId 5)
+     - BountyAmount (only for VoteTypeId 9)
+   - **tags**.csv
+	- Id
+	- TagName: the actual text of the tag
+	- Count: the number of times this tag is assigned to a post
+	

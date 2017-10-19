@@ -1,0 +1,131 @@
+q1.
+match (u1:User)-[answ:Answer]->(ans:Answer)<-[hasAn:HasAnswer]-(q:Question)
+where q.id = 3
+with u1 as u, q
+return q.title,u.displayName as name, u.creationDate as date, u.upVotes as upvote, u.downVotes as downvote
+union
+match (q:Question)<-[ask:Ask]-(u2:User)
+where q.id = 3
+with u2 as u,q
+return q.title,u.displayName as name, u.creationDate as date, u.upVotes as upvote, u.downVotes as downvote
+
+q2.
+match (t:Tag{tagName:"county"})<-[:HasTag]-(q:Question)
+return q.title, q.viewCount
+order by q.viewCount desc
+limit 1
+
+q3.
+match  (t:Tag{tagName:"api"})<-[hast:HasTag]-(q:Question)-[acc:Accept]->(an:Answer)
+return t.tagName,q.title, an.creationDate-q.creationDate as answerTime
+order by answerTime 
+limit 1
+union match  (t:Tag{tagName:"usa"})<-[hast:HasTag]-(q:Question)-[acc:Accept]->(an:Answer)
+return t.tagName,q.title, an.creationDate-q.creationDate as answerTime
+order by answerTime 
+limit 1
+union
+match  (t:Tag{tagName:"city"})<-[hast:HasTag]-(q:Question)-[acc:Accept]->(an:Answer)
+return t.tagName,q.title, an.creationDate-q.creationDate as answerTime
+order by answerTime 
+limit 1
+
+q4.
+match (u1:User)-[:Answer]->(an:Answer)<-[:HasAnswer]-(q:Question)-[:HasTag]-(t:Tag)
+where 1368092756<an.creationDate<1456573201 and 1368092756<q.creationDate<1456573201
+with distinct u1.id as user,t.tagName as tagName
+with collect({a:user,b:tagName}) as rows
+optional match (u2:User)-[:Ask]-(q:Question)-[:HasTag]-(t:Tag)
+where  1368092756<q.creationDate<1456573201
+with distinct u2.id as user,t.tagName as tagName,rows as rows
+with rows+collect({a:user,b:tagName}) as allrows
+unwind(allrows) as row
+with row.a as user, row.b as tagName
+return tagName, count(user) as total
+order by total desc
+limit 5
+
+q5.
+match (t:Tag{tagName:'api'})-[:HasTag]-(q:Question)-[:Accept]-(an:Answer)-[:Answer]-(u:User)
+return u.id as uid, count(t.tagName) as time,collect(q.id) as question
+order by time desc
+limit 1
+
+q6.
+match (u:User)-[:Answer]->(an:Answer)<-[:Accept]-(q:Question)-[:HasTag]->(t:Tag)
+where u.id = 1511 
+with distinct t.tagName as t
+optional match (u:User)-[:Answer]-(an:Answer)-[:Accept]-(q:Question)-[:HasTag]-(tag:Tag{tagName:t})
+where u.id = 1511
+with distinct  count(an.id) as answerNum, tag.tagName as t
+order by answerNum desc
+where answerNum > 10
+optional match (q1:Question)-[:HasTag]-(tag:Tag{tagName:t})
+where q1.acceptedAnswerId is null
+return distinct q1.creationDate as time, q1.title, t
+order by time desc
+limit 5
+
+q7.1
+match (q:Question)--(v:Vote)
+with q.id as qid, count(v) as votenumber
+where votenumber>10
+match (v:Vote)-[:Upvote]-(acca:Answer)-[:Accept]-(q:Question)
+where q.id = qid
+with acca.id as accaid, collect(v.id) as total
+optional match (v:Vote)-[:Upvote]-(acca:Answer{id:accaid})-[:Accept]-(q:Question)
+where v.creationDate > acca.creationDate
+with accaid,total, size(total) as totalnum, size(collect(v.id)) as decisionDay
+with accaid, tofloat(decisionDay)/tofloat(totalnum) as percentage
+order by percentage desc
+optional match (q:Question)-[:HasAnswer]-(an:Answer{id:accaid})
+return q.id, q.title, percentage
+limit 1
+
+q7.2
+match (q:Question)--(v:Vote)
+with q.id as qid, count(v) as votenumber
+where votenumber>10
+match (q:Question{id:qid})-[:HasAnswer]-(an:Answer)-[:Upvote]-(v2:Vote)
+with q.id as qid, size(collect(v2.id)) as total
+optional match (v:Vote)-[:Upvote]-(acca:Answer)-[:Accept]-(q:Question{id:qid})
+with qid as qid, total - size(collect(v.id)) as total,acca.creationDate as acceptedTime
+optional match (q:Question{id:qid})-[:HasAnswer]-(an:Answer)-[:Upvote]-(v2:Vote)
+where v2.creationDate>acceptedTime
+with qid as qid, total as total, size(collect(v2.id)) as afterDecisionall,acceptedTime as acceptedTime
+optional match (v:Vote)-[:Upvote]-(acca:Answer)-[:Accept]-(q:Question{id:qid})
+where v.creationDate> acceptedTime
+with qid as qid, total as total, afterDecisionall-size(collect(v.id)) as afterDecision
+where total>0
+return qid, tofloat(afterDecision)/tofloat(total) as percentage
+order by percentage desc
+limit 1
+
+q8
+match (q:Question)-[:Ask]-(u:User)-[:Answer]-(a:Answer)
+where u.id=7
+with distinct  a
+optional match (q:Question)-[:HasAnswer]-(a)
+with distinct q
+optional match (u1:User)-[:Ask]-(q)-[:HasAnswer]-(an:Answer)-[:Answer]-(u2:User)
+where u1.id <> 7 and u2.id <> 7 
+with u2.id as answerer, u1.id as asker
+where answerer is not null
+with answerer
+with collect({a:answerer}) as rows
+match (q:Question)-[:Ask]-(u:User)-[:Answer]-(a:Answer)
+where u.id=7
+with distinct  q, rows
+optional match (q)-[:HasAnswer]-(:Answer)-[:Answer]-(u:User)
+where u.id<>7
+with rows, u.id as uid
+with rows+collect({a:uid}) as allrows
+match (u:User)-[:Answer]-(a:Answer)-[:HasAnswer]-(q:Question)-[:Ask]-(u1:User)
+where u.id = 7
+with allrows+collect({a:u1.id}) as comrows
+unwind(comrows) as row
+with row.a as uid
+with uid as uid, count(1) as num 
+return uid, num
+order by num desc
+

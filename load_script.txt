@@ -1,0 +1,112 @@
+#load all post
+LOAD CSV WITH HEADERS FROM "file:///Posts.csv" AS line
+CREATE (:Post {id: toInt(line.Id),
+postTypeId: toInt(line.PostTypeId),
+acceptedAnswerId:toInt(line.PostTypeId),
+creationDate: line.CreationDate,
+score: toInt(line.Score),
+viewCount: toInt(line.ViewCount),
+ownerUserId: toInt(line.OwnerUserId),
+lastEditorUserId:toInt(line.LastEditorUserId),
+lastEditDate: line.LastEditDate,
+lastActivityDate: line.LastActivityDate,
+title: line.Title,
+tags: line.Tags,
+answerCount: toInt(line.AnswerCount),
+commentCount: toInt(line.CommentCount),
+favoriteCount: toInt(line.FavoriteCount),
+parentId: toInt(line.ParentId)
+
+})
+
+
+#load user
+LOAD CSV WITH HEADERS FROM "file:///Users.csv" AS line
+CREATE (:User
+{
+id:toInt(Id),
+reputation:toInt(line.Reputation),
+creationDate:line.CreationDate,
+displayName:line.DisplayName,
+lastAccessDate:line.LastAccessDate,
+location:line.Location,
+age:toInt(line.Age),
+views:toInt(line.Views),
+upVotes:toInt(line.UpVotes),
+downVotes:toInt(line.DownVotes)
+})
+
+#load tags
+
+LOAD CSV WITH HEADERS FROM "file:///Tags.csv" AS line
+CREATE (:Tag
+{
+id: toint(line.Id),
+tagName: line.TagName,
+count: toint(line.Count)
+})
+
+#load votes
+LOAD CSV WITH HEADERS FROM "file:///Votes.csv" AS line
+CREATE (:Vote
+{
+id: toint(line.Id),
+postId:toint(line.PostId),
+voteTypeId:toint(line.VoteTypeId),
+creationDate:line.CreationDate,
+userId:toint(line.UserId),
+bountyAmount :toint(line.BountyAmount)
+})
+
+#create relationship between question and user
+match (q:Question), (u:User)
+where q.ownerUserId = u.id
+create(u)-[r:Ask{creationDate:q.creationDate}]->(q)
+return q.id, u.id
+
+#create relationship between answer and user
+match (a:Answer), (u:User)
+where a.ownerUserId = u.id
+create(u)-[r:Answer{creationDate:a.creationDate}]->(a)
+return a.id, u.id
+
+#create relationship between question and answer
+match (a:Answer), (q:Question)
+where a.parentId = q.id
+create(q)-[r:HasAnswer]->(a)
+return a.id, q.id
+
+#create relationship of accepted answer
+match (q:Question), (a:Answer)
+where  a.id = q.acceptedAnswerId
+create (q)-[:Accept]->(a);
+
+#create relationship between vote and question
+match (v:Vote), (q:Question)
+where v.PostId = q.id
+create(v)-[u:Upvote]->(q)
+return v, q
+
+#create relationship between vote and answer
+match (v:Vote), (an:Answer)
+where v.PostId = an.id
+create(v)-[u:Upvote]->(an)
+return v, an
+
+#two steps for converting tags to array
+match(e:Question)
+SET e.tags = FILTER(x IN e.tags WHERE x <> "");
+
+match(e:Question)
+set e.tags = split(e.tags[0],",")
+
+#create relationship of accepted answer
+match (q:Question), (a:Answer)
+where  a.id = q.acceptedAnswerId
+create (q)-[:Accept]->(a);
+
+#create relationship between tag and question
+MATCH (q:Question), (t:Tag)
+WHERE t.tagName in q.tags
+create (q)-[hasTag:HasTag]->(t)
+RETURN q.tags, t.tagName
